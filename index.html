@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>miplantel — Gestión de equipos de fútbol</title>
+<meta name="description" content="La app que usan los cuerpos técnicos para citar, registrar presencias y hacer estadísticas de su equipo. Simple, rápida y desde el celular.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #4d73f5;
+  --blue-mid: #7a9cff;
+  --blue-bright: #a5c4ff;
+  --blue-dim: rgba(77,115,245,0.14);
+  --blue-glow: rgba(77,115,245,0.3);
+  --yellow: #f5a623;
+  --red: #e05555;
+  --bg: #07186b;
+  --surface: #0d2280;
+  --surface2: #112896;
+  --border: #1e3ab0;
+  --text: #e8efff;
+  --muted: #7a9ccc;
+  --light: #a5bcee;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 18px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(to bottom, rgba(7,24,107,0.97), rgba(7,24,107,0));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.nav-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem; letter-spacing: 4px;
+  color: var(--blue);
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.nav-logo span { color: var(--text); }
+.nav-cta {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.3px;
+}
+.nav-cta:hover { background: #3366ff; transform: translateY(-1px); box-shadow: 0 4px 20px var(--blue-glow); }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 20px 80px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(77,115,245,0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(245,166,35,0.08) 0%, transparent 60%);
+}
+
+/* Campo de fútbol sutil en el fondo */
+.hero-field {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-field svg { width: 100%; max-width: 900px; height: auto; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(34,85,238,0.12);
+  border: 1px solid rgba(26,64,214,0.3);
+  border-radius: 100px;
+  padding: 6px 16px;
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--blue);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+.hero h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3.5rem, 12vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: -1px;
+  position: relative;
+}
+
+.hero h1 .line-blue { color: var(--blue); display: block; }
+.hero h1 .line-white { color: var(--text); display: block; }
+.hero h1 .line-dim { color: #7a90c0; display: block; }
+
+.hero-sub {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  color: var(--light);
+  max-width: 560px;
+  width: 100%;
+  line-height: 1.65;
+  margin: 24px auto 40px;
+  font-weight: 400;
+  padding: 0 8px;
+}
+
+
+.hero-actions {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: #3366ff; transform: translateY(-2px); box-shadow: 0 8px 32px var(--blue-glow); }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 14px 32px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+
+.hero-stat-row {
+  display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+  margin-top: 72px;
+}
+
+.hero-stat { text-align: center; }
+.hero-stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem; line-height: 1;
+  color: var(--blue);
+}
+.hero-stat-lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; font-weight: 600; }
+
+/* Mockup del teléfono */
+.phone-mockup {
+  position: relative;
+  margin: 60px auto 0;
+  width: 280px;
+
+  max-width: 90vw;
+}
+
+.phone-frame {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 36px;
+  padding: 14px;
+  box-shadow:
+    0 0 0 1px rgba(26,64,214,0.08),
+    0 40px 80px rgba(26,64,214,0.18),
+    0 0 60px var(--blue-glow);
+}
+.phone-screen {
+  background: #0d2280;
+  border-radius: 24px;
+  overflow: hidden;
+  height: 480px;
+}
+.phone-notch {
+  width: 80px; height: 8px;
+  background: #1a1a2e;
+  border-radius: 0 0 8px 8px;
+  margin: 0 auto 10px;
+}
+.phone-ui-header {
+  background: #07186b;
+  padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #1e3ab0;
+}
+.pui-logo { font-family: 'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:3px; color:#fff; }
+.pui-dot { width:8px;height:8px;border-radius:50%;background:#a5d6a7;animation:pulse 2s infinite; }
+.phone-ui-tabs {
+  display: flex;
+  background: #0d2280;
+  border-bottom: 1px solid #1e3ab0;
+  padding: 0 8px;
+
+}
+.pui-tab {
+  flex: 1; text-align: center;
+  font-size: 0.5rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 8px 2px;
+  color: #7a9ccc;
+}
+.pui-tab.active { color: #a5c4ff; border-bottom: 2px solid #4d73f5; }
+.phone-ui-body { padding: 10px 12px; }
+.pui-countbar {
+  background: #112896;
+  border: 1px solid #1e3ab0;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 10px;
+}
+.pui-ci { text-align: center; }
+.pui-cn { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; line-height:1; color: var(--blue); }
+.pui-cl { font-size:0.45rem; color:#7a9ccc; margin-top:2px; text-transform:uppercase; letter-spacing:1px; }
+.pui-player {
+  background: #112896;
+  border: 1px solid #1e3ab0;
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pui-player.citado { border-color: #f5a623; background: rgba(245,166,35,0.1); }
+.pui-player.present { border-color: #4d73f5; background: rgba(77,115,245,0.15); }
+.pui-tbtn { width:20px;height:20px;border-radius:50%;background:transparent;border:1.5px solid #1e3ab0; flex-shrink:0; }
+.pui-player.citado .pui-tbtn { background:#f5a623;border-color:#f5a623; }
+.pui-player.present .pui-tbtn { background:#4d73f5;border-color:#4d73f5; }
+.pui-pname { font-size:0.6rem; font-weight:500; flex:1; color:#e8efff; }
+.pui-psub { font-size:0.45rem; color:#7a9ccc; }
+
+@keyframes fadeUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+@keyframes fadeDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes scaleIn { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
+@keyframes slideInLeft { from { opacity:0; transform: translateX(-30px); } to { opacity:1; transform: translateX(0); } }
+@keyframes slideInRight { from { opacity:0; transform: translateX(30px); } to { opacity:1; transform: translateX(0); } }
+
+/* ── SECTION WRAPPER ── */
+section { position: relative; z-index: 1; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+.section-pad { padding: 100px 0; }
+
+/* ── PROBLEMA ── */
+.problema {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.problema-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+@media(max-width:700px){ .problema-grid { grid-template-columns: 1fr; } }
+.pb-side {
+  padding: 48px 40px;
+}
+.pb-side:first-child { border-right: 1px solid var(--border); }
+@media(max-width:700px){ .pb-side:first-child { border-right:none; border-bottom:1px solid var(--border); } }
+.pb-label {
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pb-label.before { color: var(--red); }
+.pb-label.after { color: var(--blue); }
+.pb-label::before { content:''; width:20px; height:1px; background: currentColor; }
+.pb-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 16px;
+  font-size: 0.93rem; color: var(--light); line-height: 1.5;
+}
+.pb-item-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.pb-item.good { color: var(--text); }
+
+/* ── FEATURES ── */
+.section-label {
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 3px;
+  color: var(--blue-bright, #a5c4ff);
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.section-sub {
+  font-size: 1.05rem; color: var(--light);
+  max-width: 500px; line-height: 1.65;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 56px;
+}
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.feat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(26,64,214,0.07) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.feat-card:hover { border-color: rgba(34,85,238,0.4); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+.feat-card:hover::before { opacity: 1; }
+.feat-card.visible .feat-icon { animation: scaleIn 0.4s 0.2s ease both; }
+.feat-icon {
+  width: 48px; height: 48px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(34,85,238,0.2);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: 18px;
+  position: relative;
+}
+.feat-title {
+  font-weight: 700; font-size: 1.05rem;
+  margin-bottom: 8px;
+  position: relative;
+}
+.feat-desc {
+  font-size: 0.87rem; color: var(--light);
+  line-height: 1.6;
+  position: relative;
+}
+.feat-card.featured {
+  background: linear-gradient(135deg, rgba(26,64,214,0.08) 0%, var(--surface) 60%);
+  border-color: rgba(26,64,214,0.35);
+}
+
+/* ── PARA QUIÉN ── */
+.para-quien { background: var(--surface2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.pq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 48px; }
+.pq-card {
+  text-align: center;
+  padding: 32px 24px;
+  animation: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: all 0.25s;
+}
+.pq-card:hover { border-color: rgba(34,85,238,0.3); }
+.pq-emoji { font-size: 2.4rem; display: block; margin-bottom: 14px; }
+.pq-title { font-weight: 700; font-size: 1rem; margin-bottom: 8px; }
+.pq-desc { font-size: 0.83rem; color: var(--light); line-height: 1.55; }
+
+/* ── TESTIMONIALES ── */
+.testi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 48px; }
+.testi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+.testi-stars { color: var(--yellow); font-size: 0.85rem; margin-bottom: 12px; letter-spacing: 2px; }
+.testi-text { font-size: 0.93rem; color: var(--light); line-height: 1.65; font-style: italic; margin-bottom: 16px; }
+.testi-text::before { content: '"'; color: #1a40d6; font-size: 1.5rem; line-height: 0; vertical-align: -6px; margin-right: 2px; }
+.testi-text::after { content: '"'; color: #1a40d6; font-size: 1.5rem; line-height: 0; vertical-align: -6px; margin-left: 2px; }
+.testi-author { display: flex; gap: 10px; align-items: center; }
+.testi-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--blue-dim);
+  border: 1px solid rgba(26,64,214,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+.testi-name { font-weight: 700; font-size: 0.85rem; }
+.testi-role { font-size: 0.72rem; color: var(--muted); }
+
+/* ── PRICING ── */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 56px; }
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.price-card.popular {
+  border-color: var(--blue);
+  background: linear-gradient(145deg, rgba(34,85,238,0.1) 0%, var(--surface) 50%);
+}
+.popular-badge {
+  position: absolute; top: 20px; right: 20px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+.price-plan { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: var(--muted); margin-bottom: 16px; }
+.price-plan.blue { color: var(--blue); }
+.price-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3.5rem; line-height: 1;
+  color: var(--text);
+}
+.price-num span { font-size: 1.5rem; color: var(--muted); }
+.price-period { font-size: 0.78rem; color: var(--muted); margin-bottom: 24px; }
+.price-divider { height: 1px; background: var(--border); margin-bottom: 20px; }
+.price-feat { display: flex; gap: 10px; align-items: flex-start; font-size: 0.87rem; color: var(--light); margin-bottom: 12px; line-height: 1.4; }
+.pf-check { color: var(--blue); flex-shrink: 0; font-size: 0.9rem; }
+.pf-check.no { color: var(--muted); }
+.price-cta {
+  width: 100%;
+  margin-top: 24px;
+  padding: 12px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+.price-cta:hover { border-color: var(--blue); color: var(--blue); }
+.price-cta.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.price-cta.primary:hover { background: #3366ff; box-shadow: 0 4px 24px var(--blue-glow); }
+
+/* ── CTA FINAL ── */
+.cta-final {
+  text-align: center;
+  padding: 120px 24px;
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 50%, rgba(77,115,245,0.18) 0%, transparent 70%);
+  border-top: 1px solid var(--border);
+}
+.cta-final h2 { font-family:'Bebas Neue',sans-serif; font-size: clamp(2.8rem,8vw,6rem); line-height:0.95; margin-bottom:20px; }
+.cta-final p { font-size:1.05rem; color:var(--light); max-width:480px; margin:0 auto 40px; line-height:1.65; }
+
+/* ── FORM ── */
+.waitlist-form {
+  display: flex; gap: 10px; max-width: 460px; margin: 0 auto;
+  flex-wrap: wrap;
+}
+.waitlist-form input {
+  flex: 1; min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.waitlist-form input:focus { border-color: var(--blue); }
+.waitlist-form input::placeholder { color: var(--muted); }
+.waitlist-form button {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.waitlist-form button:hover { background: #3366ff; box-shadow: 0 4px 24px var(--blue-glow); }
+.form-note { font-size: 0.72rem; color: #7a90c0; margin-top: 12px; }
+
+.success-msg {
+  display: none;
+  background: rgba(34,85,238,0.1);
+  border: 1px solid rgba(26,64,214,0.3);
+  color: var(--blue);
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 40px 24px;
+  text-align: center;
+}
+.footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 4px; color: var(--blue); margin-bottom: 10px; }
+.footer-links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+.footer-links a { font-size: 0.8rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--blue); }
+.footer-copy { font-size: 0.73rem; color: var(--muted); }
+
+/* ── DIVIDER ── */
+.section-divider {
+  width: 48px; height: 3px;
+  background: var(--blue);
+  border-radius: 2px;
+  margin: 20px 0 0;
+}
+
+/* ── SCROLL ANIMATIONS ── */
+.reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.75s cubic-bezier(0.22,1,0.36,1), transform 0.75s cubic-bezier(0.22,1,0.36,1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ── SCROLLING MARQUEE ── */
+.marquee-wrap {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+  background: #0d2280;
+}
+.marquee-track {
+  display: flex;
+  gap: 40px;
+  animation: marquee 30s linear infinite;
+  width: max-content;
+}
+.marquee-item {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.9rem; letter-spacing: 2px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.marquee-item .dot { color: var(--blue); font-size: 0.6rem; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.traspaso-grid { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+@media(max-width:860px) { .traspaso-grid { grid-template-columns:1fr; gap:36px; } }
+
+@media(max-width:768px) {
+  .traspaso-grid { grid-template-columns:1fr; gap:32px; }
+  .problema-grid { grid-template-columns:1fr; }
+  .pb-side:first-child { border-right:none; border-bottom:1px solid var(--border); }
+  .features-grid { grid-template-columns:1fr; }
+  .pq-grid { grid-template-columns:1fr 1fr; }
+  .testi-grid { grid-template-columns:1fr; }
+  .pricing-grid { grid-template-columns:1fr; }
+}
+
+@media(max-width:600px) {
+  nav { padding: 12px 16px; }
+  .hero { padding: 100px 20px 60px; text-align: center; align-items: center; }
+  .hero h1 { text-align: center; }
+  .hero-badge { text-align: center; }
+  .hero-sub { text-align: center; margin-left: auto; margin-right: auto; }
+  .hero-actions { align-items: center; }
+  .hero-stat-row { justify-content: center; }
+  .nav-logo { font-size: 1.1rem; letter-spacing: 2px; }
+  .nav-cta { padding: 7px 14px; font-size: 0.78rem; }
+  .hero { padding: 100px 16px 60px; }
+  .container { padding: 0 16px; }
+  .section-pad { padding: 64px 0; }
+  .pb-side { padding: 28px 16px; }
+  .feat-card, .pq-card, .testi-card { padding: 20px 16px; }
+  .hero-stat-row { gap: 20px; }
+  .hero-stat-num { font-size: 2.2rem; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-actions a { text-align: center; justify-content: center; }
+  .btn-primary, .btn-secondary { padding: 13px 20px; font-size: 0.92rem; }
+  .phone-mockup { width: 220px; }
+  .phone-screen { height: 400px; }
+  .pq-grid { grid-template-columns:1fr; }
+  .section-title { font-size: clamp(2rem, 9vw, 3.5rem); }
+}
+
+  /* ── JS ANIMATIONS ── */
+  .js-anim {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.75s cubic-bezier(0.22,1,0.36,1), transform 0.75s cubic-bezier(0.22,1,0.36,1);
+  }
+  .js-anim[data-dir="down"] {
+    transform: translateY(-20px);
+  }
+  .js-anim[data-dir="left"] {
+    transform: translateX(-36px);
+  }
+  .js-anim[data-dir="right"] {
+    transform: translateX(36px);
+  }
+  .js-anim[data-dir="scale"] {
+    transform: scale(0.9);
+  }
+  .js-anim.in {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="js-anim" data-delay="0" data-dir="down">
+  <div class="nav-logo">⚽ <span>MI</span>PLANTEL</div>
+  <a href="#waitlist" class="nav-cta">Quiero probarlo</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-field">
+    <svg viewBox="0 0 900 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="20" width="860" height="460" stroke="white" stroke-width="2" rx="4"/>
+      <line x1="450" y1="20" x2="450" y2="480" stroke="white" stroke-width="1.5"/>
+      <circle cx="450" cy="250" r="70" stroke="white" stroke-width="1.5"/>
+      <circle cx="450" cy="250" r="4" fill="white"/>
+      <rect x="20" y="165" width="120" height="170" stroke="white" stroke-width="1.5"/>
+      <rect x="20" y="205" width="50" height="90" stroke="white" stroke-width="1.5"/>
+      <rect x="760" y="165" width="120" height="170" stroke="white" stroke-width="1.5"/>
+      <rect x="830" y="205" width="50" height="90" stroke="white" stroke-width="1.5"/>
+      <circle cx="160" cy="250" r="4" fill="white"/>
+      <circle cx="740" cy="250" r="4" fill="white"/>
+    </svg>
+  </div>
+
+  <div class="hero-badge js-anim" data-delay="100">
+    <span class="badge-dot"></span>
+    Infantiles · Juveniles · Planteles mayores
+  </div>
+
+  <h1 class="js-anim" data-delay="200">
+    <span class="line-white">GESTIONÁ</span>
+    <span class="line-blue">TU EQUIPO</span>
+    <span class="line-dim">COMO UN PRO</span>
+  </h1>
+
+  <p class="hero-sub js-anim" data-delay="350">
+    Citaciones, presencias, estadísticas y formaciones — todo desde el celular. Para infantiles, juveniles y planteles mayores. Sin planillas, sin grupos de WhatsApp desorganizados, sin perder tiempo.
+  </p>
+
+  <div class="hero-actions" style="">
+    <a href="#waitlist" class="btn-primary">⚽ Quiero probarlo</a>
+    <a href="#features" class="btn-secondary">Ver cómo funciona →</a>
+  </div>
+
+  <!-- PHONE MOCKUP -->
+  <div class="phone-mockup js-anim" data-delay="500">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-notch"></div>
+        <div class="phone-ui-header">
+          <span class="pui-logo">MIPLANTEL</span>
+          <span class="pui-dot"></span>
+        </div>
+        <div class="phone-ui-tabs">
+          <div class="pui-tab">Plantel</div>
+          <div class="pui-tab active">Citaciones</div>
+          <div class="pui-tab">Stats</div>
+          <div class="pui-tab">Tablas</div>
+        </div>
+        <div class="phone-ui-body">
+          <div class="pui-countbar">
+            <div class="pui-ci"><div class="pui-cn" style="color:#ffab40">14</div><div class="pui-cl">Citados</div></div>
+            <div class="pui-ci"><div class="pui-cn">87%</div><div class="pui-cl">del plantel</div></div>
+            <div class="pui-ci"><div class="pui-cn" style="color:#2255ee">F8</div><div class="pui-cl">Fecha</div></div>
+          </div>
+          <div class="pui-player present">
+            <div class="pui-tbtn"></div>
+            <div><div class="pui-pname">Matías González</div><div class="pui-psub">Delantero · #9</div></div>
+          </div>
+          <div class="pui-player citado">
+            <div class="pui-tbtn"></div>
+            <div><div class="pui-pname">Lautaro Díaz</div><div class="pui-psub">Mediocampo · #8</div></div>
+          </div>
+          <div class="pui-player present">
+            <div class="pui-tbtn"></div>
+            <div><div class="pui-pname">Tomás Herrera</div><div class="pui-psub">Defensor · #4</div></div>
+          </div>
+          <div class="pui-player">
+            <div class="pui-tbtn"></div>
+            <div><div class="pui-pname">Facundo López</div><div class="pui-psub">Mediocampo · #6</div></div>
+          </div>
+          <div class="pui-player present">
+            <div class="pui-tbtn"></div>
+            <div><div class="pui-pname">Agustín Romero</div><div class="pui-psub">Arquero · #1</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="dot">●</span> CITACIONES EN UN TOQUE</span>
+    <span class="marquee-item"><span class="dot">●</span> CONTROL DE PRESENCIAS</span>
+    <span class="marquee-item"><span class="dot">●</span> ESTADÍSTICAS EN TIEMPO REAL</span>
+    <span class="marquee-item"><span class="dot">●</span> FORMACIÓN INTERACTIVA</span>
+    <span class="marquee-item"><span class="dot">●</span> TABLA DE POSICIONES</span>
+    <span class="marquee-item"><span class="dot">●</span> COMPARTIR POR WHATSAPP</span>
+    <span class="marquee-item"><span class="dot">●</span> FUNCIONA OFFLINE</span>
+    <span class="marquee-item"><span class="dot">●</span> CITACIONES EN UN TOQUE</span>
+    <span class="marquee-item"><span class="dot">●</span> CONTROL DE PRESENCIAS</span>
+    <span class="marquee-item"><span class="dot">●</span> ESTADÍSTICAS EN TIEMPO REAL</span>
+    <span class="marquee-item"><span class="dot">●</span> FORMACIÓN INTERACTIVA</span>
+    <span class="marquee-item"><span class="dot">●</span> TABLA DE POSICIONES</span>
+    <span class="marquee-item"><span class="dot">●</span> COMPARTIR POR WHATSAPP</span>
+    <span class="marquee-item"><span class="dot">●</span> FUNCIONA OFFLINE</span>
+  </div>
+</div>
+
+<!-- PROBLEMA -->
+<section class="problema section-pad">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label reveal">El problema</div>
+      <h2 class="section-title reveal reveal-delay-1">¿Te suena familiar?</h2>
+    </div>
+    <div class="problema-grid reveal">
+      <div class="pb-side">
+        <div class="pb-label before">Antes</div>
+        <div class="pb-item"><span class="pb-item-icon">📲</span><span>Para buscar citaciones viejas tenés que scrollear el historial del grupo de WhatsApp</span></div>
+        <div class="pb-item"><span class="pb-item-icon">👕</span><span>En la semana terminás preguntando quién se llevó las camisetas porque no te acordás</span></div>
+        <div class="pb-item"><span class="pb-item-icon">📊</span><span>Para saber quién falta más y quién falta menos tenés que recurrir a tus anotaciones</span></div>
+        <div class="pb-item"><span class="pb-item-icon">❓</span><span>Para saber las causas de las faltas tenés que recurrir al historial de WhatsApp</span></div>
+        <div class="pb-item"><span class="pb-item-icon">📝</span><span>Las anotaciones se pierden, se mojan o desaparecen justo cuando más las necesitás</span></div>
+      </div>
+      <div class="pb-side">
+        <div class="pb-label after">Con miplantel</div>
+        <div class="pb-item good"><span class="pb-item-icon">✅</span><span>La citación genera automáticamente un mensaje completo: rival, fecha, horario, dirección y condición de local o visitante</span></div>
+        <div class="pb-item good"><span class="pb-item-icon">✅</span><span>Registro claro de quién se lleva las camisetas partido a partido, con un toque</span></div>
+        <div class="pb-item good"><span class="pb-item-icon">✅</span><span>Estadísticas de asistencia por jugador: quién falta más, quién falta menos, de un vistazo</span></div>
+        <div class="pb-item good"><span class="pb-item-icon">✅</span><span>Las causas de cada falta quedan registradas — lesión, enfermedad, personal, sin aviso</span></div>
+        <div class="pb-item good"><span class="pb-item-icon">✅</span><span>Todo guardado en la nube automáticamente — nunca más se pierde nada</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section-pad" id="features">
+  <div class="container">
+    <div style="max-width:540px">
+      <div class="section-label reveal">Funcionalidades</div>
+      <h2 class="section-title reveal reveal-delay-1">Todo lo que<br>necesitás en un solo lugar</h2>
+      <p class="section-sub reveal reveal-delay-2">Diseñada específicamente para cuerpos técnicos de fútbol infantil y juvenil. Sin complicaciones innecesarias.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card featured reveal" style="transition-delay:0s">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">Citaciones instantáneas</div>
+        <div class="feat-desc">Publicá la citación y se genera automáticamente un mensaje con rival, horario, dirección y condición de local o visitante. Sale directo por WhatsApp para que el plantel lo vea en tiempo real.</div>
+      </div>
+      <div class="feat-card reveal reveal-delay-1" style="transition-delay:0.1s">
+        <div class="feat-icon">✅</div>
+        <div class="feat-title">Control de presencias</div>
+        <div class="feat-desc">Marcá quién llegó al entrenamiento o al partido con un solo toque. Registrá motivos de ausencia: lesión, enfermedad, suspensión.</div>
+      </div>
+      <div class="feat-card reveal reveal-delay-2" style="transition-delay:0.2s">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Estadísticas del plantel</div>
+        <div class="feat-desc">% de asistencia por jugador, presencias en los últimos partidos y tendencia. Sabés quién está más comprometido y quién necesita una charla.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">⚽</div>
+        <div class="feat-title">Formación interactiva</div>
+        <div class="feat-desc">Arrastrá los jugadores al campo, armá la táctica y compartila directamente por WhatsApp antes del partido.</div>
+      </div>
+      <div class="feat-card reveal reveal-delay-1" style="transition-delay:0.1s">
+        <div class="feat-icon">🏆</div>
+        <div class="feat-title">Resultados y tabla</div>
+        <div class="feat-desc">La app analiza automáticamente tu próximo rival y te muestra cómo viene performando — goles, victorias, tendencia. Al mismo tiempo destaca tu propia performance y resalta a ambos equipos en la tabla para que llegués al partido con toda la info.</div>
+      </div>
+      <div class="feat-card reveal reveal-delay-2" style="transition-delay:0.2s">
+        <div class="feat-icon">📱</div>
+        <div class="feat-title">App instalable (PWA)</div>
+        <div class="feat-desc">Se instala en el celular como una app nativa, funciona offline y no ocupa casi nada. Sin AppStore, sin Play Store.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENS SHOWCASE -->
+<section class="section-pad" style="overflow:hidden;">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:56px;">
+      <div class="section-label reveal">La app por dentro</div>
+      <h2 class="section-title reveal reveal-delay-1">Cada pantalla pensada<br>para el día del partido</h2>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:32px; align-items:start; justify-items:center;">
+
+      <!-- SCREEN 1: ENTRENAMIENTO -->
+      <div class="reveal" style="text-align:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:12px; display:inline-block; box-shadow:0 24px 60px rgba(0,0,0,0.35), 0 0 40px rgba(77,115,245,0.15); width:200px;">
+          <div style="background:#0d2280; border-radius:20px; overflow:hidden; height:360px;">
+            <div style="background:#07186b; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e3ab0;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.85rem; letter-spacing:2px; color:#a5c4ff;">MIPLANTEL</span>
+              <span style="width:7px;height:7px;border-radius:50%;background:#4d73f5;display:inline-block;"></span>
+            </div>
+            <div style="display:flex; background:#0d2280; border-bottom:1px solid #1e3ab0; padding:0 6px;">
+              <div style="flex:1;text-align:center;font-size:0.42rem;font-weight:700;text-transform:uppercase;padding:7px 2px;color:#7a9ccc;">Plantel</div>
+              <div style="flex:1;text-align:center;font-size:0.42rem;font-weight:700;text-transform:uppercase;padding:7px 2px;color:#a5c4ff;border-bottom:2px solid #4d73f5;">Presencias</div>
+              <div style="flex:1;text-align:center;font-size:0.42rem;font-weight:700;text-transform:uppercase;padding:7px 2px;color:#7a9ccc;">Stats</div>
+              <div style="flex:1;text-align:center;font-size:0.42rem;font-weight:700;text-transform:uppercase;padding:7px 2px;color:#7a9ccc;">Tablas</div>
+            </div>
+            <div style="padding:8px 10px;">
+              <div style="background:#112896; border:1px solid #1e3ab0; border-radius:6px; padding:8px; margin-bottom:6px; display:flex; justify-content:space-around;">
+                <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#4d73f5;">16</div><div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;">presentes</div></div>
+                <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#e8efff;">94%</div><div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;">asistencia</div></div>
+                <div style="text-align:center;"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#e03030;">2</div><div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;">ausentes</div></div>
+              </div>
+              <div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px;">Entrenamiento · Martes 18/03</div>
+              <div style="background:#112896;border:1px solid #4d73f5;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#4d73f5;flex-shrink:0;"></div><div><div style="font-size:0.5rem;font-weight:500;color:#e8efff;">Matías González</div><div style="font-size:0.4rem;color:#7a9ccc;">Delantero · #9</div></div></div>
+              <div style="background:#112896;border:1px solid #4d73f5;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#4d73f5;flex-shrink:0;"></div><div><div style="font-size:0.5rem;font-weight:500;color:#e8efff;">Lautaro Díaz</div><div style="font-size:0.4rem;color:#7a9ccc;">Mediocampo · #8</div></div></div>
+              <div style="background:#112896;border:1px solid #e03030;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;opacity:0.7;"><div style="width:16px;height:16px;border-radius:50%;background:#e03030;flex-shrink:0;"></div><div><div style="font-size:0.5rem;font-weight:500;color:#e8efff;">Facundo López</div><div style="font-size:0.4rem;color:#e03030;">Lesionado</div></div></div>
+              <div style="background:#112896;border:1px solid #4d73f5;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#4d73f5;flex-shrink:0;"></div><div><div style="font-size:0.5rem;font-weight:500;color:#e8efff;">Agustín Romero</div><div style="font-size:0.4rem;color:#7a9ccc;">Arquero · #1</div></div></div>
+              <div style="background:#112896;border:1px solid #4d73f5;border-radius:5px;padding:6px 8px;display:flex;align-items:center;gap:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#4d73f5;flex-shrink:0;"></div><div><div style="font-size:0.5rem;font-weight:500;color:#e8efff;">Tomás Herrera</div><div style="font-size:0.4rem;color:#7a9ccc;">Defensor · #4</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text); margin-bottom:5px;">Control de entrenamiento</div>
+          <div style="font-size:0.82rem; color:var(--muted); line-height:1.55;">Marcá presentes en segundos y registrá motivos de ausencia. Todo queda guardado automáticamente.</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: ESTADÍSTICAS -->
+      <div class="reveal reveal-delay-1" style="text-align:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:12px; display:inline-block; box-shadow:0 24px 60px rgba(0,0,0,0.35), 0 0 40px rgba(77,115,245,0.15); width:200px;">
+          <div style="background:#0d2280; border-radius:20px; overflow:hidden; height:360px;">
+            <div style="background:#07186b; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e3ab0;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.85rem; letter-spacing:2px; color:#a5c4ff;">MIPLANTEL</span>
+              <span style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:1px;">Cat. 2012</span>
+            </div>
+            <div style="padding:8px 10px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:8px;">% CITACIONES POR JUGADOR</div>
+              <!-- stat rows -->
+              <div style="margin-bottom:5px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                  <span style="font-size:0.48rem;font-weight:600;color:#e8efff;">M. González</span>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;">96%</span>
+                </div>
+                <div style="height:3px;background:#1e3ab0;border-radius:2px;"><div style="height:100%;width:96%;background:#4d73f5;border-radius:2px;"></div></div>
+              </div>
+              <div style="margin-bottom:5px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                  <span style="font-size:0.48rem;font-weight:600;color:#e8efff;">L. Díaz</span>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;">88%</span>
+                </div>
+                <div style="height:3px;background:#1e3ab0;border-radius:2px;"><div style="height:100%;width:88%;background:#4d73f5;border-radius:2px;"></div></div>
+              </div>
+              <div style="margin-bottom:5px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                  <span style="font-size:0.48rem;font-weight:600;color:#e8efff;">A. Romero</span>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#f5a623;">72%</span>
+                </div>
+                <div style="height:3px;background:#1e3ab0;border-radius:2px;"><div style="height:100%;width:72%;background:#f5a623;border-radius:2px;"></div></div>
+              </div>
+              <div style="margin-bottom:5px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                  <span style="font-size:0.48rem;font-weight:600;color:#e8efff;">T. Herrera</span>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#f5a623;">65%</span>
+                </div>
+                <div style="height:3px;background:#1e3ab0;border-radius:2px;"><div style="height:100%;width:65%;background:#f5a623;border-radius:2px;"></div></div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                  <span style="font-size:0.48rem;font-weight:600;color:#e8efff;">F. López</span>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#e03030;">41%</span>
+                </div>
+                <div style="height:3px;background:#1e3ab0;border-radius:2px;"><div style="height:100%;width:41%;background:#e03030;border-radius:2px;"></div></div>
+              </div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:7px;">CONTROL DE CAMISETAS</div>
+              <div style="background:#112896;border:1px solid #1e3ab0;border-radius:5px;padding:6px 8px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.48rem;color:#e8efff;">M. González</span>
+                <span style="font-size:0.42rem;background:rgba(77,115,245,0.2);color:#a5c4ff;padding:2px 5px;border-radius:3px;">Lleva camisetas</span>
+              </div>
+              <div style="background:#112896;border:1px solid #1e3ab0;border-radius:5px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.48rem;color:#e8efff;">L. Díaz</span>
+                <span style="font-size:0.42rem;background:rgba(77,115,245,0.2);color:#a5c4ff;padding:2px 5px;border-radius:3px;">Lleva camisetas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text); margin-bottom:5px;">Estadísticas del plantel</div>
+          <div style="font-size:0.82rem; color:var(--muted); line-height:1.55;">% de asistencia por jugador y registro de camisetas. Datos concretos para hablar con los pibes.</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: TABLA DE POSICIONES -->
+      <div class="reveal reveal-delay-2" style="text-align:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:12px; display:inline-block; box-shadow:0 24px 60px rgba(0,0,0,0.35), 0 0 40px rgba(77,115,245,0.15); width:200px;">
+          <div style="background:#0d2280; border-radius:20px; overflow:hidden; height:360px;">
+            <div style="background:#07186b; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e3ab0;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.85rem; letter-spacing:2px; color:#a5c4ff;">MIPLANTEL</span>
+              <span style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:1px;">Tablas</span>
+            </div>
+            <div style="padding:8px 10px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:7px;">TABLA DE POSICIONES — CAT 2012</div>
+              <div style="background:#112896;border-radius:5px;overflow:hidden;border:1px solid #1e3ab0;">
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:4px 6px;border-bottom:1px solid #1e3ab0;">
+                  <span style="font-size:0.38rem;color:#7a9ccc;font-weight:700;">#</span>
+                  <span style="font-size:0.38rem;color:#7a9ccc;font-weight:700;">Equipo</span>
+                  <span style="font-size:0.38rem;color:#7a9ccc;font-weight:700;text-align:center;">PJ</span>
+                  <span style="font-size:0.38rem;color:#7a9ccc;font-weight:700;text-align:center;">GD</span>
+                  <span style="font-size:0.38rem;color:#7a9ccc;font-weight:700;text-align:center;">PTS</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;border-bottom:1px solid #1e3ab0;">
+                  <span style="font-size:0.42rem;color:#7a9ccc;">1</span>
+                  <span style="font-size:0.42rem;color:#e8efff;font-weight:600;">Dep. Norte</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">+9</span>
+                  <span style="font-size:0.42rem;color:#e8efff;font-weight:700;text-align:center;">22</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;background:rgba(77,115,245,0.15);border-bottom:1px solid #4d73f5;">
+                  <span style="font-size:0.42rem;color:#a5c4ff;">2</span>
+                  <span style="font-size:0.42rem;color:#a5c4ff;font-weight:700;">Sagrado C. ⚽</span>
+                  <span style="font-size:0.42rem;color:#a5c4ff;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#a5c4ff;text-align:center;">+7</span>
+                  <span style="font-size:0.42rem;color:#a5c4ff;font-weight:700;text-align:center;">19</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;border-bottom:1px solid #1e3ab0;">
+                  <span style="font-size:0.42rem;color:#7a9ccc;">3</span>
+                  <span style="font-size:0.42rem;color:#e8efff;">Atlético S.</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">+4</span>
+                  <span style="font-size:0.42rem;color:#e8efff;font-weight:700;text-align:center;">16</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;background:rgba(245,166,35,0.08);border-bottom:1px solid rgba(245,166,35,0.3);">
+                  <span style="font-size:0.42rem;color:#f5a623;">4</span>
+                  <span style="font-size:0.42rem;color:#f5a623;font-weight:600;">Dep. Sur</span>
+                  <span style="font-size:0.42rem;color:#f5a623;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#f5a623;text-align:center;">+2</span>
+                  <span style="font-size:0.42rem;color:#f5a623;font-weight:700;text-align:center;">14</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;border-bottom:1px solid #1e3ab0;">
+                  <span style="font-size:0.42rem;color:#7a9ccc;">5</span>
+                  <span style="font-size:0.42rem;color:#e8efff;">Club Unión</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">-3</span>
+                  <span style="font-size:0.42rem;color:#e8efff;font-weight:700;text-align:center;">10</span>
+                </div>
+                <div style="display:grid;grid-template-columns:14px 1fr 14px 14px 18px;gap:2px;padding:5px 6px;">
+                  <span style="font-size:0.42rem;color:#7a9ccc;">6</span>
+                  <span style="font-size:0.42rem;color:#e8efff;">Villa Roca</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">8</span>
+                  <span style="font-size:0.42rem;color:#e8efff;text-align:center;">-8</span>
+                  <span style="font-size:0.42rem;color:#e8efff;font-weight:700;text-align:center;">6</span>
+                </div>
+              </div>
+              <div style="margin-top:8px;">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:5px;">PRÓXIMO RIVAL</div>
+                <div style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);border-radius:5px;padding:6px 8px;">
+                  <div style="font-size:0.48rem;color:#f5a623;font-weight:700;">Dep. Sur — F9 · Sábado 22/03</div>
+                  <div style="font-size:0.42rem;color:#7a9ccc;margin-top:2px;">Local · 10:00 hs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text); margin-bottom:5px;">Tabla de posiciones</div>
+          <div style="font-size:0.82rem; color:var(--muted); line-height:1.55;">Seguí dónde estás parado en el torneo y quién es el próximo rival, en tiempo real.</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: COMPARATIVA -->
+      <div class="reveal" style="text-align:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:12px; display:inline-block; box-shadow:0 24px 60px rgba(0,0,0,0.35), 0 0 40px rgba(77,115,245,0.15); width:200px;">
+          <div style="background:#0d2280; border-radius:20px; overflow:hidden; height:360px;">
+            <div style="background:#07186b; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e3ab0;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.85rem; letter-spacing:2px; color:#a5c4ff;">MIPLANTEL</span>
+              <span style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:1px;">Comparativa</span>
+            </div>
+            <div style="padding:8px 10px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:8px;">NOSOTROS VS DEP. SUR</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:0.8rem;color:#4d73f5;">Sagrado C.</span>
+                <span style="font-size:0.42rem;color:#7a9ccc;">VS</span>
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:0.8rem;color:#7a9ccc;">Dep. Sur</span>
+              </div>
+              <!-- stat bars -->
+              <div style="margin-bottom:6px;">
+                <div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Goles a favor</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;width:14px;">18</span>
+                  <div style="flex:1;height:5px;background:#1e3ab0;border-radius:3px;overflow:hidden;display:flex;">
+                    <div style="width:60%;background:#4d73f5;border-radius:3px 0 0 3px;"></div>
+                    <div style="width:40%;background:#444;"></div>
+                  </div>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#7a9ccc;width:14px;text-align:right;">13</span>
+                </div>
+              </div>
+              <div style="margin-bottom:6px;">
+                <div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Goles en contra</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;width:14px;">9</span>
+                  <div style="flex:1;height:5px;background:#1e3ab0;border-radius:3px;overflow:hidden;display:flex;">
+                    <div style="width:45%;background:#4d73f5;border-radius:3px 0 0 3px;"></div>
+                    <div style="width:55%;background:#444;"></div>
+                  </div>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#7a9ccc;width:14px;text-align:right;">11</span>
+                </div>
+              </div>
+              <div style="margin-bottom:6px;">
+                <div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Victorias</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;width:14px;">6</span>
+                  <div style="flex:1;height:5px;background:#1e3ab0;border-radius:3px;overflow:hidden;display:flex;">
+                    <div style="width:70%;background:#4d73f5;border-radius:3px 0 0 3px;"></div>
+                    <div style="width:30%;background:#444;"></div>
+                  </div>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#7a9ccc;width:14px;text-align:right;">4</span>
+                </div>
+              </div>
+              <div style="margin-bottom:10px;">
+                <div style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Derrotas</div>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#4d73f5;width:14px;">1</span>
+                  <div style="flex:1;height:5px;background:#1e3ab0;border-radius:3px;overflow:hidden;display:flex;">
+                    <div style="width:25%;background:#4d73f5;border-radius:3px 0 0 3px;"></div>
+                    <div style="width:75%;background:#e03030;"></div>
+                  </div>
+                  <span style="font-family:'Bebas Neue',sans-serif;font-size:0.7rem;color:#7a9ccc;width:14px;text-align:right;">3</span>
+                </div>
+              </div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:5px;">HISTORIAL ENTRE SÍ</div>
+              <div style="display:flex;gap:3px;flex-wrap:wrap;">
+                <span style="background:rgba(77,115,245,0.2);border-radius:4px;padding:3px 5px;font-size:0.4rem;"><span style="color:#4d73f5;font-family:'Bebas Neue',sans-serif;">V</span> <span style="color:#7a9ccc;">F3 2-1</span></span>
+                <span style="background:rgba(77,115,245,0.2);border-radius:4px;padding:3px 5px;font-size:0.4rem;"><span style="color:#4d73f5;font-family:'Bebas Neue',sans-serif;">V</span> <span style="color:#7a9ccc;">F7 3-0</span></span>
+                <span style="background:rgba(245,166,35,0.1);border-radius:4px;padding:3px 5px;font-size:0.4rem;"><span style="color:#f5a623;font-family:'Bebas Neue',sans-serif;">E</span> <span style="color:#7a9ccc;">F2 1-1</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text); margin-bottom:5px;">Análisis del rival</div>
+          <div style="font-size:0.82rem; color:var(--muted); line-height:1.55;">Comparativa de stats frente al próximo rival e historial de enfrentamientos.</div>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: FORMACIÓN -->
+      <div class="reveal reveal-delay-1" style="text-align:center;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:28px; padding:12px; display:inline-block; box-shadow:0 24px 60px rgba(0,0,0,0.35), 0 0 40px rgba(77,115,245,0.15); width:200px;">
+          <div style="background:#0d2280; border-radius:20px; overflow:hidden; height:360px;">
+            <div style="background:#07186b; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1e3ab0;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.85rem; letter-spacing:2px; color:#a5c4ff;">MIPLANTEL</span>
+              <span style="font-size:0.4rem;color:#7a9ccc;text-transform:uppercase;letter-spacing:1px;">Formación</span>
+            </div>
+            <div style="padding:6px 8px;">
+              <!-- campo SVG mini -->
+              <svg viewBox="0 0 160 100" style="width:100%;border-radius:6px;margin-bottom:6px;">
+                <rect width="160" height="100" fill="#2d5a27" rx="4"/>
+                <rect x="4" y="4" width="152" height="92" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" rx="2"/>
+                <line x1="80" y1="4" x2="80" y2="96" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+                <circle cx="80" cy="50" r="14" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+                <rect x="4" y="33" width="22" height="34" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+                <rect x="134" y="33" width="22" height="34" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+                <!-- jugadores -->
+                <circle cx="18" cy="50" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="18" y="52.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">1</text>
+                <circle cx="42" cy="28" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="42" y="30.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">2</text>
+                <circle cx="42" cy="50" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="42" y="52.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">5</text>
+                <circle cx="42" cy="72" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="42" y="74.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">3</text>
+                <circle cx="70" cy="25" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="70" y="27.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">6</text>
+                <circle cx="70" cy="50" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="70" y="52.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">8</text>
+                <circle cx="70" cy="75" r="6" fill="#1a40d6" stroke="#fff" stroke-width="0.8"/>
+                <text x="70" y="77.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">4</text>
+                <circle cx="100" cy="30" r="6" fill="#4d73f5" stroke="#fff" stroke-width="0.8"/>
+                <text x="100" y="32.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">7</text>
+                <circle cx="100" cy="50" r="6" fill="#4d73f5" stroke="#fff" stroke-width="0.8"/>
+                <text x="100" y="52.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">10</text>
+                <circle cx="100" cy="70" r="6" fill="#4d73f5" stroke="#fff" stroke-width="0.8"/>
+                <text x="100" y="72.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">11</text>
+                <circle cx="128" cy="50" r="6" fill="#f5a623" stroke="#fff" stroke-width="0.8"/>
+                <text x="128" y="52.5" text-anchor="middle" fill="white" font-size="4" font-family="Arial" font-weight="bold">9</text>
+                <text x="80" y="10" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="4.5" font-family="Arial">ATAQUE →</text>
+              </svg>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:0.65rem;letter-spacing:1.5px;color:#7a9ccc;margin-bottom:5px;">BANCO DE SUPLENTES</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                <div style="background:#112896;border:1px solid #1e3ab0;border-radius:4px;padding:4px 6px;text-align:center;min-width:40px;">
+                  <div style="width:18px;height:18px;border-radius:50%;background:#1e3ab0;margin:0 auto 2px;display:flex;align-items:center;justify-content:center;"><span style="font-size:0.38rem;color:#a5c4ff;font-weight:700;">12</span></div>
+                  <div style="font-size:0.38rem;color:#7a9ccc;">F. López</div>
+                </div>
+                <div style="background:#112896;border:1px solid #1e3ab0;border-radius:4px;padding:4px 6px;text-align:center;min-width:40px;">
+                  <div style="width:18px;height:18px;border-radius:50%;background:#1e3ab0;margin:0 auto 2px;display:flex;align-items:center;justify-content:center;"><span style="font-size:0.38rem;color:#a5c4ff;font-weight:700;">13</span></div>
+                  <div style="font-size:0.38rem;color:#7a9ccc;">R. Suárez</div>
+                </div>
+                <div style="background:#112896;border:1px solid #1e3ab0;border-radius:4px;padding:4px 6px;text-align:center;min-width:40px;">
+                  <div style="width:18px;height:18px;border-radius:50%;background:#1e3ab0;margin:0 auto 2px;display:flex;align-items:center;justify-content:center;"><span style="font-size:0.38rem;color:#a5c4ff;font-weight:700;">14</span></div>
+                  <div style="font-size:0.38rem;color:#7a9ccc;">P. Castro</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text); margin-bottom:5px;">Formación táctica</div>
+          <div style="font-size:0.82rem; color:var(--muted); line-height:1.55;">Armá la formación arrastrando jugadores al campo y compartila por WhatsApp antes del partido.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TRASPASO -->
+<section class="section-pad" style="background: var(--surface2); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="container">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;
+@media(max-width:700px){grid-template-columns:1fr;}">
+
+      <div class="reveal js-anim" data-dir="left" data-delay="100">
+        <div class="section-label">El problema que nadie habla</div>
+        <h2 class="section-title" style="margin-bottom:18px;">Cuando el profe se va,<br><span style="color:var(--blue)">se va todo con él</span></h2>
+        <p style="font-size:1rem; color:var(--light); line-height:1.7; margin-bottom:20px;">
+          El profe que se va lleva en la cabeza tres temporadas de historia: quién faltó, por qué, quién mejoró, quién no. El nuevo profe arranca de cero — sin contexto, sin datos, sin nada.
+        </p>
+        <p style="font-size:1rem; color:var(--light); line-height:1.7;">
+          Con miplantel el traspaso es instantáneo. El nuevo profe obtiene acceso y tiene en la pantalla el historial completo de todas las temporadas — presencias, citaciones, estadísticas, causas de ausencia, quién llevó las camisetas. Todo.
+        </p>
+      </div>
+
+      <div class="reveal js-anim" data-dir="right" data-delay="200">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px; position:relative; overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle, rgba(77,115,245,0.12) 0%, transparent 70%);pointer-events:none;"></div>
+
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border);">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">👨</div>
+            <div>
+              <div style="font-weight:700;font-size:0.9rem;">Prof. Marcelo — 3 temporadas</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">Deja la Cat. 2012 · Diciembre 2024</div>
+            </div>
+            <div style="margin-left:auto;font-size:0.7rem;color:var(--red);background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.2);padding:4px 10px;border-radius:6px;white-space:nowrap;">Sale del club</div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <div style="font-size:0.72rem;color:var(--blue);font-weight:700;background:var(--blue-dim);border:1px solid rgba(77,115,245,0.25);padding:4px 14px;border-radius:20px;white-space:nowrap;">⚡ Traspaso instantáneo</div>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border);">
+            <div style="width:40px;height:40px;border-radius:50%;background:var(--blue-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🧑</div>
+            <div>
+              <div style="font-weight:700;font-size:0.9rem;">Prof. Sebastián — nuevo</div>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:2px;">Toma la Cat. 2012 · Enero 2025</div>
+            </div>
+            <div style="margin-left:auto;font-size:0.7rem;color:var(--blue);background:var(--blue-dim);border:1px solid rgba(77,115,245,0.25);padding:4px 10px;border-radius:6px;white-space:nowrap;">Obtiene acceso</div>
+          </div>
+
+          <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:12px;">Lo que ve el primer día</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <div style="background:var(--blue-dim);border:1px solid rgba(77,115,245,0.2);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--light);">📋 3 temporadas de citaciones</div>
+            <div style="background:var(--blue-dim);border:1px solid rgba(77,115,245,0.2);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--light);">📊 Historial de asistencias</div>
+            <div style="background:var(--blue-dim);border:1px solid rgba(77,115,245,0.2);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--light);">❓ Causas de cada falta</div>
+            <div style="background:var(--blue-dim);border:1px solid rgba(77,115,245,0.2);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--light);">👕 Control de camisetas</div>
+            <div style="background:var(--blue-dim);border:1px solid rgba(77,115,245,0.2);border-radius:8px;padding:8px 12px;font-size:0.78rem;color:var(--light);">🏆 Resultados y tabla</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PARA QUIÉN -->
+<section class="para-quien section-pad">
+  <div class="container">
+    <div style="text-align:center">
+      <div class="section-label reveal">Para quién es</div>
+      <h2 class="section-title reveal reveal-delay-1">Hecha para el fútbol<br>argentino</h2>
+    </div>
+    <div class="pq-grid">
+      <div class="pq-card reveal">
+        <span class="pq-emoji">🧑‍💼</span>
+        <div class="pq-title">Directores Técnicos</div>
+        <div class="pq-desc">Organizá citaciones y presencias en segundos. Más tiempo para pensar en el fútbol, menos en la administración.</div>
+      </div>
+      <div class="pq-card reveal reveal-delay-1">
+        <span class="pq-emoji">🏃</span>
+        <div class="pq-title">Profes de inferiores</div>
+        <div class="pq-desc">Categorías de 8 a 20 años. Seguí el compromiso de cada jugador con datos reales, no con la memoria.</div>
+      </div>
+      <div class="pq-card reveal reveal-delay-2">
+        <span class="pq-emoji">🏟️</span>
+        <div class="pq-title">Clubes de barrio</div>
+        <div class="pq-desc">Desde el club del barrio hasta el club con varias pensiones. Escalable a todas las categorías del club.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALES -->
+<section class="section-pad">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:0">
+      <div class="section-label reveal">Testimonios</div>
+      <h2 class="section-title reveal reveal-delay-1">Lo que dicen<br>los profes</h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card reveal js-anim" data-dir="scale" data-delay="0">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">Antes tardaba 20 minutos por partido organizando todo en papel. Ahora en 2 minutos tengo la citación publicada y la presencia cargada.</div>
+        <div class="testi-author">
+          <div class="testi-avatar">👨</div>
+          <div>
+            <div class="testi-name">Marcelo R.</div>
+            <div class="testi-role">DT Cat. 2012 — Club Atlético San Martín</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="testi-card reveal js-anim" data-dir="scale" data-delay="120">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">La estadística de presencias me cambió la cabeza. Ahora puedo hablar con el padre con datos concretos, no con mi sensación.</div>
+        <div class="testi-author">
+          <div class="testi-avatar">👨</div>
+          <div>
+            <div class="testi-name">Lucas F.</div>
+            <div class="testi-role">Profe Cat. 2015 — Club Social Rivera</div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-card reveal js-anim" data-dir="scale" data-delay="240">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">El seguimiento de quién se lleva las camisetas me salvó la vida. Antes siempre había uno que "no sabía" si las tenía o no. Ahora hay un registro claro y los pibes se hacen responsables.</div>
+        <div class="testi-author">
+          <div class="testi-avatar">👨</div>
+          <div>
+            <div class="testi-name">Sebastián P.</div>
+            <div class="testi-role">Utilero / DT Cat. 2013 — Club Atlético Quilmes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- PROMO REFERIDO -->
+<section class="section-pad" style="background: var(--surface); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="container">
+    <div style="max-width:680px; margin:0 auto; text-align:center;">
+      <div class="section-label reveal">Programa de referidos</div>
+      <h2 class="section-title reveal reveal-delay-1">RECOMENDÁS UN CLUB,<br><span style="color:var(--yellow)">LOS DOS GANAN</span></h2>
+      <p class="section-sub reveal reveal-delay-2" style="margin: 0 auto 40px;">Si referís a otro club y se suma, el mes siguiente <strong style="color:var(--text)">vos pagás el 50% de tu cuota de mantenimiento</strong>. Sin límite — cuantos más clubes traés, más meses a mitad de precio.</p>
+      <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;" class="reveal reveal-delay-3">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:24px 28px;flex:1;min-width:180px;max-width:220px;">
+          <div style="font-size:2rem;margin-bottom:10px;">🤝</div>
+          <div style="font-weight:700;margin-bottom:6px;">Referís un club</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.5;">Lo recomendás y se da de alta mencionando tu club</div>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--muted);font-size:1.4rem;">→</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:24px 28px;flex:1;min-width:180px;max-width:220px;">
+          <div style="font-size:2rem;margin-bottom:10px;">✅</div>
+          <div style="font-weight:700;margin-bottom:6px;">El club se suma</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.5;">El nuevo club activa su cuenta en miplantel</div>
+        </div>
+        <div style="display:flex;align-items:center;color:var(--muted);font-size:1.4rem;">→</div>
+        <div style="background:rgba(255,171,64,0.08);border:1px solid rgba(255,171,64,0.3);border-radius:14px;padding:24px 28px;flex:1;min-width:180px;max-width:220px;">
+          <div style="font-size:2rem;margin-bottom:10px;">💛</div>
+          <div style="font-weight:700;margin-bottom:6px;color:var(--yellow)">50% OFF tu cuota</div>
+          <div style="font-size:0.82rem;color:var(--muted);line-height:1.5;">El mes siguiente pagás la mitad. Así de simple.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-final" id="waitlist">
+  <div class="section-label reveal" style="transition-delay:0s">Contacto</div>
+  <h2 class="reveal reveal-delay-1" style="transition: opacity 0.9s 0.1s ease, transform 0.9s 0.1s cubic-bezier(0.22,1,0.36,1);">¿LISTO PARA<br><span style="color:var(--blue)">PROBARLO?</span></h2>
+  <p class="reveal reveal-delay-2">Escribinos por WhatsApp y te damos acceso para tu club. En minutos estás operando.</p>
+
+  <div class="reveal reveal-delay-3">
+    <a href="https://wa.me/542215866104?text=Hola!%20%E2%9A%BD%20Vi%20la%20web%20de%20Plantel%20App%20y%20estoy%20interesado%20para%20mi%20club%20%F0%9F%A5%85%20%F0%9F%8F%9F%EF%B8%8F"
+       target="_blank"
+       style="display:inline-flex;align-items:center;gap:12px;background:#25D366;color:#fff;text-decoration:none;padding:16px 36px;border-radius:12px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1.05rem;transition:all 0.2s;box-shadow:0 4px 24px rgba(37,211,102,0.3);"
+       onmouseover="this.style.background='#1ebe5d';this.style.transform='translateY(-2px)'"
+       onmouseout="this.style.background='#25D366';this.style.transform='none'">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Quiero probarlo
+    </a>
+  </div>
+  <div class="form-note reveal" style="margin-top:16px">Respondemos en menos de 24 hs · Lunes a sábado</div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">⚽ MIPLANTEL</div>
+  <div style="font-size:0.82rem; color:#4d73f5; letter-spacing:1px; margin-bottom:6px;">miplantel.com.ar</div>
+  <div class="footer-links">
+    <a href="#features">Funcionalidades</a>
+    <a href="#waitlist">Acceso anticipado</a>
+    <a href="/cdn-cgi/l/email-protection#7e1611121f3e1d120b1c0d1d501f0e0e">Contacto</a>
+  </div>
+  <div class="footer-copy">© 2025 miplantel · miplantel.com.ar — Hecho en Argentina 🇦🇷</div>
+</footer>
+
+<script>
+(function() {
+  // ── Hero: animar al cargar (el script está al final del body, el DOM ya existe) ──
+  function animateHero() {
+    document.querySelectorAll('.js-anim').forEach(function(el) {
+      var delay = parseInt(el.getAttribute('data-delay') || '0');
+      setTimeout(function() { el.classList.add('in'); }, delay);
+    });
+  }
+  // Intentar inmediatamente (script al final = DOM listo)
+  animateHero();
+  // Doble seguro con load
+  window.addEventListener('load', animateHero);
+
+  // ── Scroll reveal ──
+  function checkReveal() {
+    document.querySelectorAll('.reveal:not(.visible)').forEach(function(el) {
+      var rect = el.getBoundingClientRect();
+      var windowH = window.innerHeight || document.documentElement.clientHeight;
+      if (rect.top < windowH - 40) {
+        el.classList.add('visible');
+        el.classList.add('in');
+      }
+    });
+  }
+
+  // Usar IntersectionObserver si está disponible, sino scroll event
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          e.target.classList.add('in');
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+    document.querySelectorAll('.reveal').forEach(function(el) { obs.observe(el); });
+  } else {
+    // Fallback para browsers viejos
+    window.addEventListener('scroll', checkReveal, { passive: true });
+    checkReveal();
+  }
+
+  // Fallback final: mostrar todo a los 2.5s por si algo falló
+  setTimeout(function() {
+    document.querySelectorAll('.reveal:not(.visible), .js-anim:not(.in)').forEach(function(el) {
+      el.classList.add('visible');
+      el.classList.add('in');
+    });
+  }, 2500);
+})();
+</script>
+</body>
+</html>
